@@ -9,6 +9,12 @@ def read_cap_img(file_name):
     cap_img = cap_img.drop(pixels.columns, axis=1)
     return cap_img
 
+def process_cap_img(cap_img):
+    numeric_cols =  list(map(str,range(3024)))
+    pixels= cap_img[numeric_cols]
+    cap_img['cap_img'] = np.array(pixels.values.tolist()).astype(int)
+    cap_img = cap_img.drop(pixels.columns, axis=1)
+    return cap_img
 
 def read_skeleton(file_name):
     #we keep only four firt measurements for each finger instead of 5
