@@ -25,6 +25,7 @@ def read_cap_img(file_path,sniffer,default_columns):
         #check if cap_img is as expected
         if cap_img.columns.values.tolist() != default_columns:
             raise KeyError('Columns are not as expected for file: ' + file_path)
+    cap_img = cap_img.rename(columns={'TimeStamps': 'Timestamp'})
     return cap_img
 
 def read_skeleton(file_path,sniffer,default_columns):
@@ -45,15 +46,80 @@ def process_cap_img(cap_img,trunc=False):
     img = img[:,:41,:] if trunc else img
     cap_img['cap_img']= list(img)
     cap_img = cap_img.drop(pixels.columns, axis=1)
+    cap_img[cap_img.columns.drop('cap_img')] = cap_img[cap_img.columns.drop('cap_img')].apply(pd.to_numeric, errors='coerce')
+    cap_img.dropna(inplace=True)
     return cap_img
 
-def process_skeleton(file_name,finger_cols):
+def process_skeleton(skeleton,last_fingers_cols,trunc=False):
     #we keep only four firt measurements for each finger instead of 5
-    skeleton = pd.read_csv(file_name,sep=',', index_col=0)
-    s=skeleton.copy()
-    s=s.drop(finger_cols,axis=1)
-    return s
+    if trunc : 
+        skeleton=skeleton.drop(last_fingers_cols,axis=1)
+    hand_cords = skeleton.drop("Timestamp",axis=1)
+    skeleton['skeleton'] = list(hand_cords.values.reshape(-1,21,3).astype(int))
+    skeleton = skeleton.drop(hand_cords.columns, axis=1)
+    skeleton[skeleton.columns.drop('skeleton')] = skeleton[skeleton.columns.drop('skeleton')].apply(pd.to_numeric, errors='coerce')
+    skeleton.dropna(inplace=True)
+    skeleton.Timestamp = skeleton.Timestamp*1000
+    return skeleton
 
+def custom_mode(series):
+    return series.mode().iloc[0]
+
+def custom_mean(arrays):
+    return np.mean(arrays.tolist(), axis=0)
+
+def map_cap_img_to_skeleton(skeleton,cap_img,threshhold=80):
+    #we map the skeleton to the cap_img
+    # we will make both df overlap
+    max_cap, min_cap = max(cap_img.Timestamp), min(cap_img.Timestamp)
+    mask_skel = (skeleton.Timestamp >= min_cap) & (skeleton.Timestamp <= max_cap)
+    if not mask_skel.any():
+        return pd.DataFrame()
+    #add one frame before and after if possible for bins
+    loc1=mask_skel[mask_skel].first_valid_index()
+    locn=mask_skel[mask_skel].last_valid_index()
+    if loc1>0:
+        mask_skel.loc[loc1-1]=True
+    if locn<len(skeleton)-1:
+        mask_skel.loc[locn+1]=True
+    skeleton=skeleton[mask_skel].reset_index(drop=True)
+    bins = skeleton.Timestamp
+    x = cap_img.Timestamp
+    cap_img['where_to'] = np.digitize(x, bins)
+    cap_img.where_to=cap_img.where_to.map(lambda x: x-1)
+    cap_img=cap_img[~cap_img.where_to.isin([-1,len(skeleton)-1])]
+    #remove skeletons that hold too much cap_img because of the junmps
+    ranking=skeleton.Timestamp.diff().sort_values(ascending=False)
+    ranking=ranking[ranking > threshhold]
+    ranking.index=ranking.index-1
+    cols = cap_img.columns.drop(['cap_img','where_to', 'MergeTimeStamps', 'Timestamp'])
+    dict = {x: lambda x: x.value_counts().index[0] for x in cols}
+    dict['cap_img'] = np.mean
+    cap_img=cap_img[~cap_img.where_to.isin(ranking.index)]
+    res=cap_img.groupby('where_to').agg(dict)
+    data=skeleton.iloc[res.index]
+    data = pd.concat([data,res],axis=1).reset_index(drop=True)
+    return data
+
+
+def data_splits(df, id_arr):
+    X_cap, Y_skeleton = None, None
+    for p_id in id_arr:
+        df_extract = df.get_group(p_id)
+        x_cap_img = np.array(df_extract["cap_img"].tolist())
+        y_skeleton = np.array(df_extract["skeleton"].tolist()).reshape(-1,63)
+
+        x_cap_img[x_cap_img < 0] = 0
+        maxVal = 3023
+        x_cap_img = x_cap_img/maxVal
+
+        if X_cap is None:
+            X_cap = x_cap_img
+            Y_skeleton = y_skeleton
+        else:
+            X_cap = np.vstack((X_cap, x_cap_img))
+            Y_skeleton = np.vstack((Y_skeleton, y_skeleton))
+    return X_cap, Y_skeleton
 
 def plot_hand(hand_coordinates):
     # Create a 3D plot
