@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import csv
+from tensorflow.keras.models import load_model
+
 
 
 def header_sep_check(file_path,sniffer, first_col):
@@ -74,6 +76,7 @@ def map_cap_img_to_skeleton(skeleton,cap_img,threshhold=80):
     max_cap, min_cap = max(cap_img.Timestamp), min(cap_img.Timestamp)
     mask_skel = (skeleton.Timestamp >= min_cap) & (skeleton.Timestamp <= max_cap)
     if not mask_skel.any():
+        #TODO LOOK FOR DRIFT AND REPORT IT
         return pd.DataFrame()
     #add one frame before and after if possible for bins
     loc1=mask_skel[mask_skel].first_valid_index()
@@ -158,3 +161,8 @@ def plot_hand(hand_coordinates):
 
     # Show the plot
     plt.show()
+
+def get_eth_model(sub_folder,name) :
+    model_path = "../models/"
+    model = load_model(model_path+"/"+str(sub_folder)+"/"+str(name)+".hdf5")
+    return model

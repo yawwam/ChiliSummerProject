@@ -90,3 +90,34 @@ def create_MultiTaskTouchPoseNet(height, width, depth, filters=(32, 64, 128, 256
     x_depth = Conv2D(1, (1, 1), padding="same", name='regression_depth')(u3)
     model = Model(inputs=inputs, outputs=[ x_regress, x_vis, x_depth])
     return model
+
+def create_SkeletonModel(height, width, depth, filters=(32, 64, 128, 256)):
+    inputShape = (height, width, depth)
+
+    chanDim = -1
+    # define the model input
+    inputs = Input(shape=inputShape)
+
+    p0 = inputs
+    _ , p1 = down_block(p0, filters[0])
+    _ , p2 = down_block(p1, filters[1])
+    _ , p3 = down_block(p2, filters[2])
+    bn1, _ = bottleneck(p3, filters[3])
+
+    # flatten the volume, then FC => RELU => BN => DROPOUT
+    x = Flatten()(bn1)
+    x = Dense(256)(x)
+    x = Activation("relu")(x)
+    x = BatchNormalization(axis=chanDim)(x)
+    x = Dropout(0.5)(x)
+    # apply another FC layer, this one to match the number of nodes
+    # coming out of the MLP
+    fc = Dense(128, activation='relu')(x)
+
+    # Apply another FC layer, this one to match the number of nodes
+    # coming out of the MLP for regression output
+    x_regress = Dense(63, activation="linear", name='regression')(fc)
+
+    # Create the model
+    model = Model(inputs=inputs, outputs=x_regress)
+    return model
