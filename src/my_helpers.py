@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import csv
+import tensorflow as tf
 from tensorflow.keras.models import load_model
 
 
@@ -166,3 +167,45 @@ def get_eth_model(sub_folder,name) :
     model_path = "../models/"
     model = load_model(model_path+"/"+str(sub_folder)+"/"+str(name)+".hdf5")
     return model
+
+def data_splits(df):
+    X_cap, Y_skeleton = None, None
+    x_cap_img = np.array(df["cap_img"].tolist())
+    y_skeleton = np.array(df["skeleton"].tolist()).reshape(-1,63)
+
+    if X_cap is None:
+        X_cap = x_cap_img
+        Y_skeleton = y_skeleton
+    else:
+        X_cap = np.vstack((X_cap, x_cap_img))
+        Y_skeleton = np.vstack((Y_skeleton, y_skeleton))
+    return X_cap, Y_skeleton
+
+def custom_loss(y_true, y_pred):
+    J = tf.constant(21.0)  # number of predicted joints
+    return tf.reduce_sum(tf.square(y_true - y_pred)) / (J * 3)
+
+def auc_pck(y_true, y_pred):
+    thresholds = np.arange(20, 51, 5)  # Thresholds from 20 mm to 50 mm
+    pck_values = []
+
+
+    # Calculate the Euclidean distance between predicted and true joint coordinates
+    distances = tf.sqrt(tf.reduce_sum(tf.square(y_true - y_pred), axis=-1))
+
+    # Calculate the percentage of correct keypoints for each threshold
+    for threshold in thresholds:
+        correct_keypoints = tf.cast(distances < threshold, tf.float32)
+        pck = tf.reduce_mean(correct_keypoints) * 100.0
+        pck_values.append(pck)
+
+    return tf.convert_to_tensor(pck_values, dtype=tf.float32)
+
+
+def end_point_error(y_true, y_pred):
+    # Calculate the Euclidean distance between predicted and true joint coordinates
+    distances = tf.sqrt(tf.reduce_sum(tf.square(y_true - y_pred), axis=-1))
+    # Calculate the mean EPE over all joints
+    mean_epe = tf.reduce_mean(distances)
+    return mean_epe
+
