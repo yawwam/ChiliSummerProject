@@ -164,22 +164,14 @@ def plot_hand(hand_coordinates):
     plt.show()
 
 def get_eth_model(sub_folder,name) :
-    model_path = "../models/"
+    model_path = "/content/drive/MyDrive/chiliSummerProject/models"
     model = load_model(model_path+"/"+str(sub_folder)+"/"+str(name)+".hdf5")
     return model
 
-def data_splits(df):
-    X_cap, Y_skeleton = None, None
-    x_cap_img = np.array(df["cap_img"].tolist())
-    y_skeleton = np.array(df["skeleton"].tolist()).reshape(-1,63)
-
-    if X_cap is None:
-        X_cap = x_cap_img
-        Y_skeleton = y_skeleton
-    else:
-        X_cap = np.vstack((X_cap, x_cap_img))
-        Y_skeleton = np.vstack((Y_skeleton, y_skeleton))
-    return X_cap, Y_skeleton
+def data_load(df):
+  x_cap_img = np.array(df["cap_img"].tolist())
+  y_skeleton = np.array(df["skeleton"].tolist()).reshape(-1,63)
+  return x_cap_img, y_skeleton
 
 def custom_loss(y_true, y_pred):
     J = tf.constant(21.0)  # number of predicted joints
@@ -208,4 +200,74 @@ def end_point_error(y_true, y_pred):
     # Calculate the mean EPE over all joints
     mean_epe = tf.reduce_mean(distances)
     return mean_epe
+
+
+def plot_hand_compare(y_test, y_out, num_samples=5):
+    # Create a 3D plot
+    fig = plt.figure(figsize=(12, 8))
+
+    for i in range(num_samples):
+        # Create subplots for each pair of samples
+        ax1 = fig.add_subplot(2, num_samples, i + 1, projection='3d')
+        ax2 = fig.add_subplot(2, num_samples, num_samples + i + 1, projection='3d')
+
+        # Plot hand coordinates for y_test
+        plot_hand(y_test[i], ax1, title='Sample {}'.format(i + 1))
+
+        # Plot hand coordinates for y_out
+        plot_hand(y_out[i], ax2, title='Output {}'.format(i + 1))
+
+    # Adjust layout and display the figure
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_hand(hand_coordinates, ax, title=''):
+
+    # Plot the hand coordinates
+    for i in range(len(hand_coordinates)):
+        x = hand_coordinates[i][0]
+        y = hand_coordinates[i][1]
+        z = hand_coordinates[i][2]
+        
+        # Plot the coordinates
+        ax.scatter(x, y, z, color='red', marker='o')
+
+    # Connect the points to form hand segments
+    hand_segments = [
+        (0, 1), (1, 2), (2, 3), (3, 4),  # Thumb
+        (0, 5), (5, 6), (6, 7), (7, 8),  # Index finger
+        (0, 9), (9, 10), (10, 11), (11, 12),  # Middle finger
+        (0, 13), (13, 14), (14, 15), (15, 16),  # Ring finger
+        (0, 17), (17, 18), (18, 19), (19, 20)  # Pinky finger
+    ]
+
+    for segment in hand_segments:
+        x_segment = [hand_coordinates[segment[0]][0], hand_coordinates[segment[1]][0]]
+        y_segment = [hand_coordinates[segment[0]][1], hand_coordinates[segment[1]][1]]
+        z_segment = [hand_coordinates[segment[0]][2], hand_coordinates[segment[1]][2]]
+        ax.plot(x_segment, y_segment, z_segment, color='blue')
+
+    # Set labels and title
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.set_title(title)
+
+def plot_hand_compare(y_true, y_out, num_samples=5):
+    # Create a 3D plot
+    fig, axes = plt.subplots(num_samples, 2, figsize=(12, 20), subplot_kw={'projection': '3d'})
+    y_true= y_true.reshape(-1,21,3)
+    y_out = y_out.reshape(-1,21,3)
+    for i in range(num_samples):
+        # Plot hand coordinates for y_test
+        plot_hand(y_true[i], axes[i, 0], title='True skeleton {}'.format(i + 1))
+
+        # Plot hand coordinates for y_out
+        plot_hand(y_true[i], axes[i, 1], title='Predicted skeleton {}'.format(i + 1))
+
+    # Adjust layout and display the figure
+    plt.tight_layout()
+    plt.show()
+
 
