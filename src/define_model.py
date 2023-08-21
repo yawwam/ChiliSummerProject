@@ -95,7 +95,6 @@ def create_SkeletonModel(height, width, depth, filters=(32, 64, 128, 256)):
     inputShape = (height, width, depth)
 
     chanDim = -1
-    # define the model input
     inputs = Input(shape=inputShape)
 
     p0 = inputs
@@ -104,20 +103,37 @@ def create_SkeletonModel(height, width, depth, filters=(32, 64, 128, 256)):
     _ , p3 = down_block(p2, filters[2])
     bn1, _ = bottleneck(p3, filters[3])
 
-    # flatten the volume, then FC => RELU => BN => DROPOUT
     x = Flatten()(bn1)
     x = Dense(256)(x)
     x = Activation("relu")(x)
     x = BatchNormalization(axis=chanDim)(x)
     x = Dropout(0.5)(x)
-    # apply another FC layer, this one to match the number of nodes
-    # coming out of the MLP
     fc = Dense(128, activation='relu')(x)
 
-    # Apply another FC layer, this one to match the number of nodes
-    # coming out of the MLP for regression output
-    x_regress = Dense(63, activation="linear", name='regression')(fc)
+    x_skeleton = Dense(63, activation="linear", name='skeleton')(fc)
+    model = Model(inputs=inputs, outputs=x_skeleton)
+    return model
 
-    # Create the model
-    model = Model(inputs=inputs, outputs=x_regress)
+def create_skeleton_gesture_model(height, width, depth, filters=(32, 64, 128, 256)) :
+    inputShape = (height, width, depth)
+
+    chanDim = -1
+    inputs = Input(shape=inputShape)
+
+    p0 = inputs
+    _, p1 = down_block(p0, filters[0])
+    _, p2 = down_block(p1, filters[1])
+    _, p3 = down_block(p2, filters[2])
+    bn1, _ = bottleneck(p3, filters[3])
+
+    x = Flatten()(bn1)
+    x = Dense(256)(x)
+    x = Activation("relu")(x)
+    x = BatchNormalization(axis=chanDim)(x)
+    x = Dropout(0.5)(x)
+    fc = Dense(128, activation='relu')(x)
+
+    x_gesture = Dense(4, activation='softmax', name='gesture')(fc)
+    x_skeleton = Dense(63, activation="linear", name='skeleton')(fc)
+    model = Model(inputs=inputs, outputs=[x_gesture,x_skeleton])
     return model
