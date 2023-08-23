@@ -4,7 +4,7 @@ import numpy as np
 import csv
 import tensorflow as tf
 from tensorflow.keras.models import load_model
-
+import matplotlib.patches as mpatches
 
 
 def header_sep_check(file_path,sniffer, first_col):
@@ -21,7 +21,7 @@ def read_cap_img(file_path,sniffer,default_columns):
     header, separator = header_sep_check(file_path, sniffer, 'TimeStamps')                
     #read and assign columns if necessary   
     if header==None:
-        cap_img=pd.read_csv(file_path, sep= separator, low_memory=False, on_bad_lines='skip', header=None)
+        cap_img=pd.read_csv(file_path, sep=separator, low_memory=False, on_bad_lines='skip', header=None)
         cap_img.columns=default_columns
     else :
         cap_img=pd.read_csv(file_path,sep= separator,low_memory=False,on_bad_lines='skip')
@@ -37,16 +37,17 @@ def read_skeleton(file_path,sniffer,default_columns):
         
     if skeleton.columns.values.tolist() != default_columns:
         raise KeyError('Columns are not as expected for file: ' + file_path)
-    
+
     return skeleton
 
 def process_cap_img(cap_img,trunc=False):
     numeric_cols =  list(map(str,range(3024)))
     pixels= cap_img[numeric_cols]
     img = pixels.values.reshape(-1,42,72).astype(int)
-    #we keep only 41 rows instead of 42
+    #we keep only 41 rows instead of 42 to match touchpose
     cap_img['ScanSizeY'] = 41 if trunc else 42
     img = img[:,:41,:] if trunc else img
+    #merge pixels columns into one array
     cap_img['cap_img']= list(img)
     cap_img = cap_img.drop(pixels.columns, axis=1)
     cap_img[cap_img.columns.drop('cap_img')] = cap_img[cap_img.columns.drop('cap_img')].apply(pd.to_numeric, errors='coerce')
@@ -54,11 +55,11 @@ def process_cap_img(cap_img,trunc=False):
     return cap_img
 
 def process_skeleton(skeleton,last_fingers_cols,trunc=False):
-    #we keep only four firt measurements for each finger instead of 5
+    #we keep only four first measurements for each finger instead of 5
     if trunc : 
         skeleton=skeleton.drop(last_fingers_cols,axis=1)
     hand_cords = skeleton.drop("Timestamp",axis=1)
-    skeleton['skeleton'] = list(hand_cords.values.reshape(-1,21,3).astype(int))
+    skeleton['skeleton'] = list(hand_cords.values.reshape(-1,21,3).astype(float))
     skeleton = skeleton.drop(hand_cords.columns, axis=1)
     skeleton[skeleton.columns.drop('skeleton')] = skeleton[skeleton.columns.drop('skeleton')].apply(pd.to_numeric, errors='coerce')
     skeleton.dropna(inplace=True)
@@ -136,7 +137,9 @@ def data_multiload(df):
 
 def skeleton_loss(y_true, y_pred):
     J = tf.constant(21.0)  # number of predicted joints
-    return tf.reduce_sum(tf.square(y_true - y_pred)) / (J * 3)
+    mse = tf.reduce_sum(tf.square(y_true - y_pred),axis=1) / (J * 3)
+    mean_mse = tf.reduce_mean(mse)
+    return mean_mse
 
 def auc_pck(y_true, y_pred):
     thresholds = np.arange(20, 51, 5)  # Thresholds from 20 mm to 50 mm
@@ -157,56 +160,54 @@ def auc_pck(y_true, y_pred):
 
 def end_point_error(y_true, y_pred):
     # Calculate the Euclidean distance between predicted and true joint coordinates
-    distances = tf.sqrt(tf.reduce_sum(tf.square(y_true - y_pred), axis=-1))
-    # Calculate the mean EPE over all joints
-    mean_epe = tf.reduce_mean(distances)
+    euclidian_distances = tf.norm(y_true - y_pred, axis=1)
+    mean_epe = tf.reduce_mean(euclidian_distances)
     return mean_epe
 
 def plot_hand(hand_coordinates, ax, title=''):
 
+    
     # Plot the hand coordinates
     for i in range(len(hand_coordinates)):
         x = hand_coordinates[i][0]
         y = hand_coordinates[i][1]
         z = hand_coordinates[i][2]
-        
-        # Plot the coordinates
         ax.scatter(x, y, z, color='red', marker='o')
 
     # Connect the points to form hand segments
-    hand_segments = [
-        (0, 1), (1, 2), (2, 3), (3, 4),  # Thumb
-        (0, 5), (5, 6), (6, 7), (7, 8),  # Index finger
-        (0, 9), (9, 10), (10, 11), (11, 12),  # Middle finger
-        (0, 13), (13, 14), (14, 15), (15, 16),  # Ring finger
-        (0, 17), (17, 18), (18, 19), (19, 20)  # Pinky finger
-    ]
-
-    for segment in hand_segments:
-        x_segment = [hand_coordinates[segment[0]][0], hand_coordinates[segment[1]][0]]
-        y_segment = [hand_coordinates[segment[0]][1], hand_coordinates[segment[1]][1]]
-        z_segment = [hand_coordinates[segment[0]][2], hand_coordinates[segment[1]][2]]
-        ax.plot(x_segment, y_segment, z_segment, color='blue')
-
-    # Set labels and title
+    fingers = {'thumb' : ([(0, 1), (1, 2), (2, 3), (3, 4)],'blue'),
+                'index': ([(0, 5), (5, 6), (6, 7), (7, 8)],'green'),
+                'middle': ([(0, 9), (9, 10), (10, 11), (11, 12)],'red'),
+                'ring': ([(0, 13), (13, 14), (14, 15), (15, 16)],'magenta'),
+                'pinky': ([(0, 17), (17, 18), (18, 19), (19, 20)],'cyan')
+                 }
+    #fingers = { f : [(0,idx*4+1)]+[(x+idx*4,x+idx*4+1) for x in range(1,4)] for idx,f in enumerate(['thumb','index','middle','ring','pinky'])}
+    for f in fingers:
+        for segment in fingers[f][0] :
+            x_segment = [hand_coordinates[segment[0]][0], hand_coordinates[segment[1]][0]]
+            y_segment = [hand_coordinates[segment[0]][1], hand_coordinates[segment[1]][1]]
+            z_segment = [hand_coordinates[segment[0]][2], hand_coordinates[segment[1]][2]]
+            ax.plot(x_segment, y_segment, z_segment, color=fingers[f][1])
+    
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     ax.set_title(title)
+    ax.legend(handles=[mpatches.Patch(color=fingers[f][1], label=f) for f in fingers.keys()], loc='upper left')
+    #x, y, z = np.zeros((3,3))
+    #u, v, w = np.array([[1,1,0],[1,0,1],[0,1,1]])
+
+    #ax.quiver(x,y,z,u,v,w,arrow_length_ratio=0.1)
 
 def plot_hand_compare(y_true, y_out, num_samples=5):
-    # Create a 3D plot
-    fig, axes = plt.subplots(num_samples, 2, figsize=(12, 20), subplot_kw={'projection': '3d'})
+    _, axes = plt.subplots(num_samples, 2, figsize=(12, 20), subplot_kw={'projection': '3d'})
     y_true= y_true.reshape(-1,21,3)
     y_out = y_out.reshape(-1,21,3)
     for i in range(num_samples):
-        # Plot hand coordinates for y_test
+        # plot hand coordinates for y_true and y_out
         plot_hand(y_true[i], axes[i, 0], title='True skeleton {}'.format(i + 1))
-
-        # Plot hand coordinates for y_out
         plot_hand(y_out[i], axes[i, 1], title='Predicted skeleton {}'.format(i + 1))
 
-    # Adjust layout and display the figure
     plt.tight_layout()
     plt.show()
 
