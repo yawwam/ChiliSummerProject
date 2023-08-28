@@ -141,6 +141,13 @@ def skeleton_loss(y_true, y_pred):
     mean_mse = tf.reduce_mean(mse)
     return mean_mse
 
+def end_point_error(y_true, y_pred):
+    # Calculate the Euclidean distance between predicted and true joint coordinates
+    euclidian_distances = tf.norm(y_true - y_pred, axis=1)
+    mean_epe = tf.reduce_mean(euclidian_distances)
+    return mean_epe
+
+
 def auc_pck(y_true, y_pred):
     thresholds = np.arange(20, 51, 5)  # Thresholds from 20 mm to 50 mm
     pck_values = []
@@ -156,13 +163,6 @@ def auc_pck(y_true, y_pred):
         pck_values.append(pck)
 
     return tf.convert_to_tensor(pck_values, dtype=tf.float32)
-
-
-def end_point_error(y_true, y_pred):
-    # Calculate the Euclidean distance between predicted and true joint coordinates
-    euclidian_distances = tf.norm(y_true - y_pred, axis=1)
-    mean_epe = tf.reduce_mean(euclidian_distances)
-    return mean_epe
 
 def plot_hand(hand_coordinates, ax, title=''):
 
