@@ -1,5 +1,6 @@
 data/
 models/
 src/__pycache__/
+src/helpers/__pycache__/
 logs/
 .vscode/
