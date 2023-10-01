@@ -49,7 +49,7 @@ This project was developed as part of summer project at the CHILI Lab, EPFL. It 
   
 ## **Data :**
 - Chili data : Collected during a 5 days experiment involving 32 subjects. The capactive image data was recorded from a Wacom Tablet, while the hand skeleton data was collected from a leapmotion controller. The preprocessing conducted in this project results in about 80k data samples.
-- TouchPose data : https://github.com/eth-siplab/TouchPose.
+- TouchPose data : Data available at https://github.com/eth-siplab/TouchPose.
 
 
 ## **File description::**
@@ -73,7 +73,7 @@ Clone the repository, download and extract the models and data folders to the lo
 [Link to data folder](https://drive.google.com/file/d/1Rb9mLKt_CFSju_tsDiUaaNhLpHtPCdiQ/view?usp=sharing)<br />
 [Link to models](https://drive.google.com/file/d/1NNsyyY9L05gR9ZEJmI-hL7BfquxWItpn/view?usp=sharing)<br />
 
-To regenerate the processed chili data files (already provided in the link), copy the collected data folders (DATA2803...DATA0304) from the hard drive as in in project structure and run the generate_data notebook. 
+To regenerate the processed chili data files (already provided in the link), copy the collected data folders (DATA2803...DATA0304) from the hard drive as in project structure and run the generate_data notebook. 
 From now on, you can either :
 - copy the project from root to your Google drive and work on Google Colab. The Google Colab Pro high RAM allowance can handle the 80k data samples.
 - work locally from cloned project.
