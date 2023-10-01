@@ -2,10 +2,11 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
 import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
 from helpers.metrics_helpers import single_end_point_error
 
   
-def plot_skel_joints_distribs(y_train_skeleton,y_test_skeleton,joints_idx,joints_epe):
+def plot_skel_joints_distribs(skeleton_cols, data, joints_idx, joints_epe, dim2=False):
     """
     Plots the end point error distribution for each joint of the skeleton over all samples in the train and test set.
 
@@ -15,11 +16,13 @@ def plot_skel_joints_distribs(y_train_skeleton,y_test_skeleton,joints_idx,joints
         joints_idx (list): The indices of the joints to plot.
         joints_epe (list): The end point error of each joint.   
     """
+    dim = 2 if dim2 else 3
+    y_train_skeleton,y_test_skeleton =  data['train']['y'].numpy()[:,:21*dim], data['test']['y'].numpy()[:,:21*dim]
     plt.figure(figsize=(15, 60))
     for i in range(len(joints_idx)) :
         y_train_skel = y_train_skeleton[:,joints_idx[i]]
         y_test_skel = y_test_skeleton[:,joints_idx[i]]
-        plt.subplot(21, 3, i+1)
+        plt.subplot(21, dim, i+1)
         sns.kdeplot(y_train_skel, label='Train')
         sns.kdeplot(y_test_skel, label='Test')
         plt.title(f'{skeleton_cols[joints_idx[i]]} mean epe : {round(float(joints_epe[i]),2)}')
@@ -30,7 +33,7 @@ def plot_skel_joints_distribs(y_train_skeleton,y_test_skeleton,joints_idx,joints
     plt.tight_layout()
     plt.show()
 
-def plot_skel_cap_distribs(y_train_skeleton,y_test_skeleton,X_train,X_test):
+def plot_skel_cap_distribs(data, dim2=False):
     """
     Plots the skeleton and capacitive images distributions for each axis.
 
@@ -40,9 +43,12 @@ def plot_skel_cap_distribs(y_train_skeleton,y_test_skeleton,X_train,X_test):
         X_train (np.array): The capacitive images of the train set.
         X_test (np.array): The capacitive images of the test set.
     """
+    dim = 2 if dim2 else 3
     #skeleton distributions
-    y_train_skel = y_train_skeleton.reshape(-1,21,3)
-    y_test_skel = y_test_skeleton.reshape(-1,21,3)
+    X_train, X_test = data['train']['X'], data['test']['X']
+    y_train_skeleton,y_test_skeleton =  data['train']['y'].numpy()[:,:21*dim], data['test']['y'].numpy()[:,:21*dim]
+    y_train_skel = y_train_skeleton.reshape(-1,21,dim)
+    y_test_skel = y_test_skeleton.reshape(-1,21,dim)
     x_train,y_train,z_train = y_train_skel[:,:,0], y_train_skel[:,:,1], y_train_skel[:,:,2]
     x_test,y_test,z_test = y_test_skel[:,:,0], y_test_skel[:,:,1], y_test_skel[:,:,2]
     plt.figure(figsize=(15, 4))
@@ -243,7 +249,7 @@ def plot_cap_img(cap_image, ax=None):
         ax (matplotlib.axes, optional): The axes to plot on. 
     """
     if ax is None:
-        _, ax = plt.subplots(figsize=(9, 5))
+        fig, ax = plt.subplots(figsize=(9, 5))
     sns.heatmap(cap_image, cmap='viridis', cbar=True, ax=ax)
     ax.set_title('Capacitive Image Heatmap')
     ax.set_xlabel('X-coordinate')
