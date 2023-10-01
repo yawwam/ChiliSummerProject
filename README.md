@@ -55,23 +55,31 @@ This project was developed as part of summer project at the CHILI Lab, EPFL. It 
 ## **File description::**
 - data_exploration.ipynb : this notbeook explores the different Chili data files.<br />
 - skel_cap_img_map_logic.ipynb : this notebook explains the mapping logic applied for capactive images and skeleton data using Timestamps. <br />
-- generate_data.ipynb : this script generates the preprocessed data files (day2803.pkl...day0304.pkl) to be used. 
+- generate_data.ipynb : this script generates the preprocessed data files (day2803.pkl...day0304.pkl) to be used.  
 - data_stats.ipynb : this notebook explores the data at hand distribution, and compares it to the TouchPose project data.
-- define_model.py : the model definition file.
+- define_model.py : the models' definition file.
 - model_train.ipynb : all the models described in the report were trained in this file.
 - model_eval.ipynb : a notebook that evaluates trained models, as well as specific samples of interest using visualization tools.
 - touch_helpers.py : helpers used in the TouchPose project.
 - data_helpers.py : some helpers for data preprocessing and loading.
-- metrics_helpers.py : file that define model metrics and evaluation tools.
+- metrics_helpers.py : this file that define model metrics and evaluation tools.
 - plot_helpers.py : some visualization helpers.
 
  
 
 ## **Set up :**
-Clone the repository and download data/models folders. 
+Clone the repository, download and extract the models and data folders to the location described in project structure. 
+
+[Link to data folder](https://drive.google.com/file/d/1Rb9mLKt_CFSju_tsDiUaaNhLpHtPCdiQ/view?usp=sharing)<br />
+[Link to models](https://drive.google.com/file/d/1NNsyyY9L05gR9ZEJmI-hL7BfquxWItpn/view?usp=sharing)<br />
+
+To regenerate the processed chili data files (already provided in the link), copy the collected data folders (DATA2803...DATA0304) from the hard drive as in in project structure and run the generate_data notebook. 
+From now on, you can either :
+- copy the project from root to your Google drive and work on Google Colab. The Google Colab Pro high RAM allowance can handle the 80k data samples.
+- work locally from cloned project.
 
 
-## **Authors :**
+## **Author :**
 - Aouame Mohamed Yassine
 
 ## **Credits :**
