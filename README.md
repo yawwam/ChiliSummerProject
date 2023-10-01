@@ -80,7 +80,7 @@ From now on, you can either :
 
 
 ## **Author :**
-- Aouame Mohamed Yassine
+Aouame Mohamed Yassine
 
 ## **Credits :**
 eth-siplab/TouchPose : https://github.com/eth-siplab/TouchPose.
