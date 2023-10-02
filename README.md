@@ -1,7 +1,7 @@
 ## **CHILI Lab Summer project**
 
 ## **Purpose**
-This project was developed as part of summer project at the CHILI Lab, EPFL. It evolves around hand skeleton reconstituion and gesture classification from standalone capactive images data. For this task, we implement a multi-task deep network, alongside visualization and evaluation tools.
+This project was developed as part of summer project at the CHILI Lab, EPFL. It evolves around hand pose skeleton estimation and gesture classification from standalone capactive images data. For this task, we implement a multi-task deep network, alongside visualization and evaluation tools.
 
 
 ## **Project Structure**
@@ -48,7 +48,7 @@ This project was developed as part of summer project at the CHILI Lab, EPFL. It 
     *  ├── 2d_models <br />
   
 ## **Data**
-- Chili data : Collected during a 5 days experiment involving 32 subjects. The capactive image data was recorded from a Wacom Tablet, while the hand skeleton data was collected from a leapmotion controller. The preprocessing conducted in this project results in about 80k data samples.
+- Chili data : Collected during a 5 days experiment involving 32 subjects. The capactive images data was recorded from a Wacom Tablet, while the hand skeleton data was collected from a Leapmotion controller. The preprocessing conducted in this project results in about 80k data samples.
 - TouchPose data : Data available at https://github.com/eth-siplab/TouchPose.
 
 
